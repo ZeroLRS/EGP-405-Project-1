@@ -36,6 +36,9 @@
 	this happens, the opponent takes all of the stones on their side and moves 
 	them into their mancala. The winner is the player with more stones in 
 	their mancala.
+
+	This file was modified by Lucas Spiker with permission from author.
+
 */
 
 
