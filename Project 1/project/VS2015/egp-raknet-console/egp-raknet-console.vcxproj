@@ -172,14 +172,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\source\egp-mancala\egp-mancala-main.cpp" />
-    <ClCompile Include="..\..\..\source\egp-mancala\mancala\MancalaUtils.c" />
     <ClCompile Include="..\..\..\source\egp-raknet-console\egp-raknet-console-main.cpp" />
-    <ClCompile Include="Networking.cpp" />
+    <ClCompile Include="..\..\..\source\egp-raknet-console\MancalaNetworking.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\source\egp-mancala\mancala\MancalaUtils.h" />
-    <ClInclude Include="Networking.h" />
+    <ClInclude Include="..\..\..\source\egp-raknet-console\MancalaNetworking.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -17,7 +17,8 @@
 int main(int const argc, char const *const *const argv)
 {
 	
-
+	MancalaNetworking gameState;
+	gameState.init();
 
 	// exit
 	printf("\n\n");

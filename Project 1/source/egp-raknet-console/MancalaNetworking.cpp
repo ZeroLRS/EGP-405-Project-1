@@ -33,6 +33,11 @@ void MancalaNetworking::init()
 		RakNet::SocketDescriptor sd;
 		peer->Startup(1, &sd, 1);
 
+
+		printf("Enter username: (max 16 characters)\n");
+		fgets(str, bufferSz, stdin);
+		username = str;
+
 		printf("Enter server IP or hit enter for 127.0.0.1\n");
 		fgets(str, bufferSz, stdin);
 
@@ -57,7 +62,14 @@ void MancalaNetworking::init()
 		printf("Starting the server.\n");
 		peer->SetMaximumIncomingConnections(maxClients);
 		isServer = 1;
+		username = "server";
 	}
+
+	while (true)
+	{
+		HandlePackets();
+	}
+
 }
 
 void MancalaNetworking::deinit()
@@ -87,17 +99,36 @@ void MancalaNetworking::HandlePackets()
 		case ID_CONNECTION_REQUEST_ACCEPTED:
 			printf("Our connection request has been accepted.\n");
 			{
-				// Use a BitStream to write a custom user message
-				// Bitstreams are easier to use than sending casted structures, 
-				//	and handle endian swapping automatically
-				//	RakNet::BitStream bsOut;
-				//	bsOut.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
-				//	bsOut.Write("Hello world");
-				//	peer->Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
-
-				// ****TO-DO: write and send packet without using bitstream
+				
+				// Once the user has connected to the server, have them request a username
+				GameMessageFromUser msg[1] = { ID_GAME_MESSAGE_USERNAME_REQUEST };
+				strcpy(msg->playerName, username.c_str());
+				
+				peer->Send((char *)msg, sizeof(GameMessageFromUser), HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->guid, false);
 
 			}
+			break;
+		case ID_GAME_MESSAGE_USERNAME_REQUEST:
+		{
+
+			GameMessageFromUser* usernameReq = (GameMessageFromUser*)packet->data;
+
+			for (userID currID : users) {
+				if (strcmp(usernameReq->playerName, currID.username.c_str()) == 0 || strcmp(usernameReq->playerName, username.c_str())) {
+					peer->CloseConnection(packet->systemAddress, true);
+					break;
+				}
+			}
+
+			userID newUser;
+			newUser.username = usernameReq->playerName;
+			newUser.guid = packet->guid;
+
+			users.push_back(newUser);
+
+			printf("New user added");
+
+		}
 			break;
 		case ID_NEW_INCOMING_CONNECTION:
 			printf("A connection is incoming.\n");
