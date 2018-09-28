@@ -173,7 +173,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\source\egp-raknet-console\egp-raknet-console-main.cpp" />
-    <ClCompile Include="..\..\..\source\egp-raknet-console\MancalaNetworking.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\source\egp-raknet-console\MancalaNetworking.h" />

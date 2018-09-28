@@ -173,7 +173,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\source\egp-mancala\egp-mancala-main.cpp" />
-    <ClCompile Include="..\..\..\source\egp-mancala\mancala\MancalaUtils.c" />
+    <ClCompile Include="..\..\..\source\egp-mancala\mancala\MancalaUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\source\egp-mancala\mancala\MancalaUtils.h" />

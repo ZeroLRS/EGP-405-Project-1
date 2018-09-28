@@ -32,17 +32,17 @@ extern "C"
 //-----------------------------------------------------------------------------
 
 	// draw game name in console
-	void MancalaPrintTitle();
+	const char* MancalaPrintTitle();
 
 	// clear and draw name
-	void MancalaPrintTitleClear();
+	const char* MancalaPrintTitleClear();
 
 	// print board
 	//	param countList: arrays of totals (the game state to display)
 	//	param playerNameList: array of player names
 	//	param playerIndex_top: top (inactive) player index
 	//	param playerIndex_bottom: bottom (active) player index
-	void MancalaPrintBoard(
+	const char* MancalaPrintBoard(
 		int const *const *const countList, 
 		char const *const *const playerNameList, 
 		int const playerIndex_top, 

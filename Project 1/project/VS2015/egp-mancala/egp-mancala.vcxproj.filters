@@ -17,7 +17,7 @@
     <ClCompile Include="..\..\..\source\egp-mancala\egp-mancala-main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\source\egp-mancala\mancala\MancalaUtils.c">
+    <ClCompile Include="..\..\..\source\egp-mancala\mancala\MancalaUtils.cpp">
       <Filter>Source Files\mancala</Filter>
     </ClCompile>
   </ItemGroup>

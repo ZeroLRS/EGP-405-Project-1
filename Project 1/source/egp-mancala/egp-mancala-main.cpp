@@ -47,6 +47,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "../egp-raknet-console/MancalaNetworking.h"
 
 // take a turn
 // returns resulting player and cup indices as pointers
@@ -109,6 +110,7 @@ int MancalaTurn(int *const *const count, int playerIndex, int cupIndex,
 // saves final scores in optional pointer passed as argument (scores_out)
 int MancalaSimple(const char *const *const playerName, int *const scores_out)
 {
+
 	// core game state: 
 	// stone counters for each player
 	// playerCount[player index][cup index]
@@ -127,19 +129,22 @@ int MancalaSimple(const char *const *const playerName, int *const scores_out)
 	while (playerCount[0][7] && playerCount[1][7] && playerCount[0][6] < 25 && playerCount[1][6] < 25)
 	{
 		MancalaPrintTitleClear();
-		MancalaPrintBoard(playerCount, playerName, otherPlayer, activePlayer);
-		// TODO send board state to all players
+		MancalaNetworking::network->broadcastBoardState(MancalaPrintBoard(playerCount, playerName, otherPlayer, activePlayer));
 
 		printf("\n%s\'s turn! ", playerName[activePlayer]);
 		do
 		{
-			// TODO send prompt to active player
-			printf("Pick a cup with stones (1-6): ");
-			// TODO Wait for player to send input
-			// TODO Sanity check input
-			// TODO set cupIndex based on input
-			cupIndex = getchar() - 48;
-			while (getchar() != '\n');
+			MancalaNetworking::network->sendCupSelectPrompt(playerName[activePlayer]);
+			// Wait for player to send input
+			while (MancalaNetworking::network->cupSelect == -1)
+			{
+				MancalaNetworking::network->HandlePackets();
+			}
+			// Set cupIndex based on input
+			cupIndex = MancalaNetworking::network->cupSelect - 48;
+			// Reset network cup select
+			MancalaNetworking::network->cupSelect = -1;
+			// Sanity check cupIndex
 			turnResult = cupIndex > 0 && cupIndex <= 6 ? playerCount[activePlayer][--cupIndex] : 0;
 		} while (turnResult == 0);
 
@@ -149,12 +154,21 @@ int MancalaSimple(const char *const *const playerName, int *const scores_out)
 		// handle steal if landed in empty cup with stones across from it
 		if (*stealResult && **stealResult)
 		{
-			// TODO send game state to active player
-			// TODO prompt active player for steal
-			// TODO set cupIndex = input - 48
-			printf("Landed in empty cup, steal\? 0 = no, other = yes: ");
-			cupIndex = getchar() - 48;
-			while (getchar() != '\n');
+			// Send new board state active player
+			MancalaNetworking::network->
+				sendBoardState(MancalaPrintBoard(playerCount, playerName, otherPlayer, activePlayer),
+					playerName[activePlayer]);
+			// Prompt active player for steal
+			MancalaNetworking::network->sendStealSelectPrompt(playerName[activePlayer]);
+			// Wait for player input
+			while (MancalaNetworking::network->cupSelect == -1)
+			{
+				MancalaNetworking::network->HandlePackets();
+			}
+			// set cupIndex = input - 48
+			cupIndex = MancalaNetworking::network->cupSelect - 48;
+			// Reset network cup select
+			MancalaNetworking::network->cupSelect = -1;
 			if (cupIndex)
 			{
 				playerCount[activePlayer][*cupIndexResult] += **stealResult;
@@ -194,43 +208,82 @@ int MancalaSimple(const char *const *const playerName, int *const scores_out)
 	// game over, determine winner
 	winner = (playerCount[0][6] > playerCount[1][6] ? 0 : playerCount[0][6] < playerCount[1][6] ? 1 : -1);
 
-	// TODO: send end gamestate to all players
-	// TODO: send winner name to all players
-
 	return winner;
 }
 
-
-// entry function
 int main(int const argc, char const *const *const argv)
 {
-	char playerNameBuffer[2][mancala_name_len] = { "Jim", "Bob" };
-	char *playerName[] = { playerNameBuffer[0], playerNameBuffer[1] };
-	int scores[2] = { 0 };
-	int winner;
+	MancalaNetworking::network = new MancalaNetworking();
+	MancalaNetworking::network->init();
 
-
-	// startup: get player names
-	MancalaPrintTitleClear();
-	printf("\n Player 1: ");
-	MancalaGetPlayerName(playerName[0]);
-	printf("\n Player 2: ");
-	MancalaGetPlayerName(playerName[1]);
-	while (getchar() != '\n');
-
-	do
+	if (MancalaNetworking::network->isServer != 1)
 	{
-		// play a local multiplayer game of Mancala
-		winner = MancalaSimple(playerName, scores);
-		printf(winner >= 0 ? "\n %s wins!" : "\n Tie game!", playerName[winner]);
-		printf("     %s %d - %d %s", playerName[0], scores[0], scores[1], playerName[1]);
-		printf("\n Play again\? 0 = no, other = yes: ");
-		winner = getchar() - 48;
-		while (getchar() != '\n');
-	} while (winner);
+		while (MancalaNetworking::network->users.size() < 2)
+		{
+			MancalaNetworking::network->HandlePackets();
+		}
 
-	// exit
-	MancalaPrintTitleClear();
-	printf("\n\n");
+		char playerNameBuffer[2][mancala_name_len] = { "Jim", "Bob" };
+		char *playerName[] = { playerNameBuffer[0], playerNameBuffer[1] };
+		int scores[2] = { 0 };
+		int winner;
+
+		strcpy(playerName[0], MancalaNetworking::network->users[0].username.c_str());
+		strcpy(playerName[1], MancalaNetworking::network->users[1].username.c_str());
+
+		winner = MancalaSimple(playerName, scores);
+
+		if (winner != -1)
+		{
+			MancalaNetworking::network->broadcastWinnerMessage(playerName[winner]);
+		}
+		else
+		{
+			MancalaNetworking::network->broadcastTieMessage();
+		}
+	}
+	else
+	{
+		while (true)
+		{
+			MancalaNetworking::network->HandlePackets();
+		}
+	}
+
+	delete(MancalaNetworking::network);
+
 	system("pause");
 }
+// entry function
+//int main(int const argc, char const *const *const argv)
+//{
+//	char playerNameBuffer[2][mancala_name_len] = { "Jim", "Bob" };
+//	char *playerName[] = { playerNameBuffer[0], playerNameBuffer[1] };
+//	int scores[2] = { 0 };
+//	int winner;
+//
+//
+//	// startup: get player names
+//	MancalaPrintTitleClear();
+//	printf("\n Player 1: ");
+//	MancalaGetPlayerName(playerName[0]);
+//	printf("\n Player 2: ");
+//	MancalaGetPlayerName(playerName[1]);
+//	while (getchar() != '\n');
+//
+//	do
+//	{
+//		// play a local multiplayer game of Mancala
+//		winner = MancalaSimple(playerName, scores);
+//		printf(winner >= 0 ? "\n %s wins!" : "\n Tie game!", playerName[winner]);
+//		printf("     %s %d - %d %s", playerName[0], scores[0], scores[1], playerName[1]);
+//		printf("\n Play again\? 0 = no, other = yes: ");
+//		winner = getchar() - 48;
+//		while (getchar() != '\n');
+//	} while (winner);
+//
+//	// exit
+//	MancalaPrintTitleClear();
+//	printf("\n\n");
+//	system("pause");
+//}
